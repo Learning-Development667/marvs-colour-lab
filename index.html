@@ -59,17 +59,17 @@
        WELCOME SCREEN (Screen 1)
     ══════════════════════════════════════ */
     #screen-welcome {
-      background: var(--navy);
+      position: relative;
       flex-direction: column;
       align-items: stretch;
       padding: 0;
+      min-height: 100vh;
     }
 
     .welcome-image-wrap {
-      width: 100%;
-      aspect-ratio: 4 / 3;
-      overflow: hidden;
-      flex-shrink: 0;
+      position: absolute;
+      inset: 0;
+      z-index: 0;
     }
     .welcome-image-wrap img {
       width: 100%;
@@ -78,15 +78,31 @@
       object-position: center top;
       display: block;
     }
+    .welcome-image-wrap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(19,41,75,0.1) 0%,
+        rgba(19,41,75,0.3) 50%,
+        rgba(19,41,75,0.92) 75%,
+        rgba(19,41,75,1) 100%
+      );
+    }
 
     .welcome-content {
+      position: relative;
+      z-index: 1;
       flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px 24px 32px;
+      justify-content: flex-end;
+      padding: 24px 24px 40px;
       text-align: center;
       gap: 8px;
+      min-height: 100vh;
     }
 
     .welcome-academy-label {
@@ -99,17 +115,19 @@
     }
 
     .welcome-title {
-      font-size: 32px;
+      font-size: 36px;
       font-weight: 800;
       color: var(--white);
       line-height: 1.1;
       letter-spacing: -0.01em;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.4);
     }
 
     .welcome-high-score {
       font-size: 12px;
       color: var(--text-muted);
       margin-top: 4px;
+      margin-bottom: 8px;
       min-height: 18px;
     }
     .welcome-high-score span {
@@ -123,9 +141,21 @@
        DIFFICULTY SCREEN (Screen 2)
     ══════════════════════════════════════ */
     #screen-difficulty {
-      background: var(--navy);
+      position: relative;
       flex-direction: column;
       padding: 24px 20px 32px;
+      background: var(--navy) url('images/difficulty-bg.png') center center / cover no-repeat;
+    }
+    #screen-difficulty::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(13,31,56,0.78);
+      z-index: 0;
+    }
+    #screen-difficulty > * {
+      position: relative;
+      z-index: 1;
     }
 
     .difficulty-header {
