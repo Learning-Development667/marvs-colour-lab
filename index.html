@@ -329,15 +329,15 @@
       position: absolute;
       bottom: 10px;
       right: 10px;
-      width: 44px;
-      height: 44px;
-      border-radius: 8px;
+      width: 88px;
+      height: 88px;
+      border-radius: 12px;
       border: 2px solid var(--white);
       box-shadow: 0 2px 6px rgba(0,0,0,0.5);
     }
     .target-label {
       position: absolute;
-      bottom: 58px;
+      bottom: 102px;
       right: 10px;
       font-size: 9px;
       font-weight: 700;
@@ -784,7 +784,7 @@
         <div class="difficulty-icon">🎨</div>
         <div class="difficulty-info">
           <div class="difficulty-name">Trainee</div>
-          <div class="difficulty-desc">Wider colour tolerance - great for learning the basics</div>
+          <div class="difficulty-desc">Unlimited hints, auto guidance after each attempt - learn what colours do</div>
           <div class="difficulty-score" id="hs-trainee"></div>
         </div>
         <div class="difficulty-tick"></div>
@@ -794,8 +794,18 @@
         <div class="difficulty-icon">🔧</div>
         <div class="difficulty-info">
           <div class="difficulty-name">Technician</div>
-          <div class="difficulty-desc">Moderate tolerance - for developing technicians</div>
+          <div class="difficulty-desc">Wide tolerance, up to 3 hints available</div>
           <div class="difficulty-score" id="hs-technician"></div>
+        </div>
+        <div class="difficulty-tick"></div>
+      </div>
+
+      <div class="difficulty-card" id="card-senior" onclick="selectDifficulty('senior')">
+        <div class="difficulty-icon">⚙️</div>
+        <div class="difficulty-info">
+          <div class="difficulty-name">Senior Technician</div>
+          <div class="difficulty-desc">Moderate tolerance, up to 2 hints available</div>
+          <div class="difficulty-score" id="hs-senior"></div>
         </div>
         <div class="difficulty-tick"></div>
       </div>
@@ -896,13 +906,13 @@
 
   <!-- ══ SCREEN 4: RESULT ══ -->
   <div id="screen-result" class="screen">
-    <img src="images/marvthumbsup.png" alt="MARV" class="result-marv" id="result-marv" />
+    <img src="images/marv-thumbsup.png" alt="MARV" class="result-marv" id="result-marv" />
     <div class="result-title" id="result-title">Nice Work!</div>
     <div class="result-subtitle" id="result-subtitle">You matched the colour</div>
 
     <div class="score-card">
       <div class="score-big" id="result-score-big">0</div>
-      <div class="score-card-label">Final Score</div>
+      <div class="score-card-label" id="score-card-label-text">Final Score</div>
     </div>
 
     <div class="high-score-banner" id="hs-banner">New High Score!</div>
@@ -921,7 +931,7 @@
     </div>
 
     <div class="result-spacer"></div>
-    <button class="btn btn-primary" onclick="playAgain()">Play Again</button>
+    <div id="result-btn-wrap" style="width:100%;display:flex;flex-direction:column;gap:0;"></div>
   </div>
 
   <script>
@@ -932,24 +942,41 @@
     const DIFFICULTIES = {
       trainee: {
         label: 'Trainee',
-        tolerance: 55,
-        scores: [300, 200, 100],
-        hintPenalty: 25,
-        hints: true
+        tolerance: 65,
+        scores: [150, 100, 50],
+        hintPenalty: 10,
+        hints: true,
+        unlimitedHints: true,
+        autoHint: true
       },
       technician: {
         label: 'Technician',
+        tolerance: 55,
+        scores: [300, 200, 100],
+        hintPenalty: 25,
+        hints: true,
+        unlimitedHints: false,
+        maxHints: 3,
+        autoHint: false
+      },
+      senior: {
+        label: 'Senior Technician',
         tolerance: 35,
         scores: [500, 350, 200],
         hintPenalty: 50,
-        hints: true
+        hints: true,
+        unlimitedHints: false,
+        maxHints: 2,
+        autoHint: false
       },
       master: {
         label: 'Master Technician',
         tolerance: 18,
         scores: [1000, 700, 400],
-        hintPenalty: 100,
-        hints: false
+        hintPenalty: 0,
+        hints: false,
+        unlimitedHints: false,
+        autoHint: false
       }
     };
 
@@ -964,19 +991,65 @@
       { id: 'green',   label: 'Green',   c: 80,  m: 0,   y: 90,  k: 10, css: '#1aad2c' }
     ];
 
-    // Target colours library
-    const TARGETS = [
-      { name: 'Glacier White',     c: 0,   m: 0,   y: 2,   k: 4  },
-      { name: 'Warm Ivory',        c: 0,   m: 5,   y: 18,  k: 3  },
-      { name: 'Silver Grey',       c: 0,   m: 0,   y: 0,   k: 35 },
-      { name: 'Steel Blue',        c: 60,  m: 30,  y: 0,   k: 20 },
-      { name: 'Deep Navy',         c: 80,  m: 60,  y: 0,   k: 40 },
-      { name: 'Emerald',           c: 80,  m: 0,   y: 70,  k: 10 },
-      { name: 'Coral Red',         c: 0,   m: 65,  y: 60,  k: 5  },
-      { name: 'Terracotta',        c: 0,   m: 45,  y: 55,  k: 20 },
-      { name: 'Sunflower Yellow',  c: 0,   m: 10,  y: 90,  k: 0  },
-      { name: 'Dusty Lilac',       c: 30,  m: 40,  y: 0,   k: 10 }
-    ];
+    // Target colours library - tiered by difficulty
+    const TARGETS = {
+      trainee: [
+        { name: 'Glacier White',    c: 0,  m: 0,  y: 2,  k: 4  },
+        { name: 'Warm Ivory',       c: 0,  m: 5,  y: 18, k: 3  },
+        { name: 'Light Grey',       c: 0,  m: 0,  y: 0,  k: 20 },
+        { name: 'Soft Yellow',      c: 0,  m: 0,  y: 60, k: 0  },
+        { name: 'Sky Cyan',         c: 60, m: 0,  y: 0,  k: 0  },
+        { name: 'Blush Pink',       c: 0,  m: 40, y: 10, k: 0  },
+        { name: 'Mint Green',       c: 40, m: 0,  y: 40, k: 0  },
+        { name: 'Pale Lavender',    c: 20, m: 20, y: 0,  k: 5  },
+        { name: 'Cream',            c: 0,  m: 5,  y: 25, k: 2  },
+        { name: 'Powder Blue',      c: 30, m: 10, y: 0,  k: 5  },
+        { name: 'Peach',            c: 0,  m: 30, y: 30, k: 0  },
+        { name: 'Light Lime',       c: 20, m: 0,  y: 50, k: 0  }
+      ],
+      technician: [
+        { name: 'Silver Grey',      c: 0,  m: 0,  y: 0,  k: 35 },
+        { name: 'Coral Red',        c: 0,  m: 65, y: 60, k: 5  },
+        { name: 'Sunflower Yellow', c: 0,  m: 10, y: 90, k: 0  },
+        { name: 'Ocean Blue',       c: 70, m: 30, y: 0,  k: 10 },
+        { name: 'Sage Green',       c: 40, m: 0,  y: 50, k: 20 },
+        { name: 'Dusty Rose',       c: 0,  m: 40, y: 25, k: 15 },
+        { name: 'Warm Tan',         c: 0,  m: 20, y: 40, k: 20 },
+        { name: 'Slate Blue',       c: 50, m: 30, y: 0,  k: 25 },
+        { name: 'Olive',            c: 20, m: 10, y: 60, k: 25 },
+        { name: 'Salmon',           c: 0,  m: 50, y: 45, k: 0  },
+        { name: 'Teal',             c: 70, m: 0,  y: 30, k: 15 },
+        { name: 'Mustard',          c: 0,  m: 20, y: 80, k: 10 }
+      ],
+      senior: [
+        { name: 'Steel Blue',       c: 60, m: 30, y: 0,  k: 20 },
+        { name: 'Terracotta',       c: 0,  m: 45, y: 55, k: 20 },
+        { name: 'Dusty Lilac',      c: 30, m: 40, y: 0,  k: 10 },
+        { name: 'Forest Green',     c: 70, m: 10, y: 80, k: 30 },
+        { name: 'Burgundy',         c: 10, m: 80, y: 40, k: 30 },
+        { name: 'Warm Charcoal',    c: 20, m: 20, y: 20, k: 65 },
+        { name: 'Muted Teal',       c: 60, m: 10, y: 30, k: 30 },
+        { name: 'Russet Brown',     c: 5,  m: 55, y: 70, k: 35 },
+        { name: 'Smoky Mauve',      c: 20, m: 40, y: 20, k: 30 },
+        { name: 'Deep Gold',        c: 5,  m: 25, y: 85, k: 20 },
+        { name: 'Faded Denim',      c: 55, m: 35, y: 10, k: 25 },
+        { name: 'Muted Coral',      c: 5,  m: 50, y: 45, k: 20 }
+      ],
+      master: [
+        { name: 'Deep Navy',        c: 80, m: 60, y: 0,  k: 40 },
+        { name: 'Emerald',          c: 80, m: 0,  y: 70, k: 10 },
+        { name: 'Graphite',         c: 20, m: 15, y: 10, k: 75 },
+        { name: 'Dark Burgundy',    c: 15, m: 90, y: 50, k: 45 },
+        { name: 'Midnight Teal',    c: 85, m: 20, y: 40, k: 50 },
+        { name: 'Warm Dark Brown',  c: 10, m: 60, y: 80, k: 55 },
+        { name: 'Complex Grey',     c: 15, m: 10, y: 5,  k: 55 },
+        { name: 'Dark Olive',       c: 30, m: 20, y: 70, k: 50 },
+        { name: 'Stormy Purple',    c: 40, m: 55, y: 10, k: 45 },
+        { name: 'Antique White',    c: 2,  m: 4,  y: 8,  k: 8  },
+        { name: 'Muted Khaki',      c: 15, m: 15, y: 40, k: 40 },
+        { name: 'Deep Teal',        c: 90, m: 30, y: 50, k: 40 }
+      ]
+    };
 
     // ════════════════════════════════════════════
     // STATE
@@ -985,12 +1058,17 @@
     let currentDifficulty = null;
     let selectedPaintId   = null;
     let pendingDropCount  = 1;
-    let mix               = {}; // { paintId: dropCount }
+    let mix               = {};
     let attempt           = 1;
     let currentScore      = 0;
     let hintPenalty       = 0;
+    let hintsUsed         = 0;
     let targetColour      = null;
     let gameOver          = false;
+    let sessionScore      = 0;   // cumulative score across targets
+    let targetsCompleted  = 0;   // how many targets done this session
+    let usedTargetNames   = [];  // avoid repeats in a session
+    const TARGETS_PER_SESSION = 5;
 
     // ════════════════════════════════════════════
     // SCREEN NAVIGATION
@@ -1010,14 +1088,14 @@
     function selectDifficulty(diff) {
       currentDifficulty = diff;
       document.querySelectorAll('.difficulty-card').forEach(c => c.classList.remove('selected'));
-      const cardMap = { trainee: 'card-trainee', technician: 'card-technician', master: 'card-master' };
+      const cardMap = { trainee: 'card-trainee', technician: 'card-technician', senior: 'card-senior', master: 'card-master' };
       document.getElementById(cardMap[diff]).classList.add('selected');
       document.getElementById('btn-start-mixing').disabled = false;
     }
 
     function startGame() {
       if (!currentDifficulty) return;
-      initGame();
+      initGame(true);
       showScreen('screen-game');
     }
 
@@ -1048,7 +1126,7 @@
     }
 
     function updateWelcomeHighScore() {
-      const best = Math.max(getHighScore('trainee'), getHighScore('technician'), getHighScore('master'));
+      const best = Math.max(getHighScore('trainee'), getHighScore('technician'), getHighScore('senior'), getHighScore('master'));
       const el = document.getElementById('welcome-hs-display');
       if (best > 0) {
         el.innerHTML = 'Best score: <span>' + best + '</span>';
@@ -1058,9 +1136,9 @@
     }
 
     function renderHighScoresOnDifficulty() {
-      ['trainee', 'technician', 'master'].forEach(d => {
+      ['trainee', 'technician', 'senior', 'master'].forEach(d => {
         const hs = getHighScore(d);
-        const idMap = { trainee: 'hs-trainee', technician: 'hs-technician', master: 'hs-master' };
+        const idMap = { trainee: 'hs-trainee', technician: 'hs-technician', senior: 'hs-senior', master: 'hs-master' };
         const el = document.getElementById(idMap[d]);
         el.textContent = hs > 0 ? 'Best: ' + hs + ' pts' : 'No score yet';
       });
@@ -1110,20 +1188,34 @@
     // GAME INIT
     // ════════════════════════════════════════════
 
-    function initGame() {
+    function initGame(newSession = false) {
       mix           = {};
       attempt       = 1;
       currentScore  = 0;
       hintPenalty   = 0;
+      hintsUsed     = 0;
       gameOver      = false;
       selectedPaintId = null;
 
-      // Random target
-      targetColour = TARGETS[Math.floor(Math.random() * TARGETS.length)];
+      if (newSession) {
+        sessionScore     = 0;
+        targetsCompleted = 0;
+        usedTargetNames  = [];
+      }
+
+      // Pick a random target from the right tier, avoiding repeats
+      const tier = currentDifficulty === 'master' ? 'master'
+                 : currentDifficulty === 'senior' ? 'senior'
+                 : currentDifficulty === 'technician' ? 'technician'
+                 : 'trainee';
+      const pool = TARGETS[tier].filter(t => !usedTargetNames.includes(t.name));
+      const source = pool.length > 0 ? pool : TARGETS[tier]; // reset if exhausted
+      targetColour = source[Math.floor(Math.random() * source.length)];
+      usedTargetNames.push(targetColour.name);
 
       const diff = DIFFICULTIES[currentDifficulty];
       document.getElementById('game-difficulty-badge').textContent = diff.label;
-      document.getElementById('score-display').textContent = '0';
+      document.getElementById('score-display').textContent = sessionScore;
       document.getElementById('attempt-display').textContent = '1';
       document.getElementById('btn-ask-marv').disabled = false;
 
@@ -1143,7 +1235,10 @@
       updatePreview();
 
       // MARV greeting
-      setMarv('marvfocussed', "Right then - let's get mixing! Match the target colour on the swatch. Tap a paint pot, then add drops.");
+      const greetings = currentDifficulty === 'trainee'
+        ? ["Right then - new colour! Use the hints as much as you need.", "Here's your next one! Take your time and ask MARV whenever.", "A fresh challenge! Remember - unlimited hints are yours to use."]
+        : ["Right then - let's get mixing! Match the target colour on the swatch.", "New target! Think carefully before you start mixing.", "Here we go - can you match this one?"];
+      setMarv('marvfocussed', greetings[Math.floor(Math.random() * greetings.length)]);
 
       // Hide ask MARV at Master level
       if (currentDifficulty === 'master') {
@@ -1349,7 +1444,11 @@
         } else {
           attempt++;
           document.getElementById('attempt-display').textContent = attempt;
-          giveDirectionalFeedback(mixCmyk, dist);
+          if (diff.autoHint) {
+            autoHint(mixCmyk, dist);
+          } else {
+            giveDirectionalFeedback(mixCmyk, dist);
+          }
         }
       }
     }
@@ -1395,12 +1494,59 @@
     // ASK MARV (hint)
     // ════════════════════════════════════════════
 
+    let hintsUsed = 0;
+
     function askMarv() {
       const diff = DIFFICULTIES[currentDifficulty];
       if (!diff.hints) return;
-
+      if (!diff.unlimitedHints && hintsUsed >= diff.maxHints) {
+        setMarv('marvwincing', "No more hints available at this level - you're on your own now!");
+        return;
+      }
+      hintsUsed++;
       hintPenalty += diff.hintPenalty;
+      deliverHint(diff);
+    }
 
+    function autoHint(mixCmyk, dist) {
+      const diff = DIFFICULTIES[currentDifficulty];
+      hintsUsed++;
+      hintPenalty += diff.hintPenalty;
+      // Auto hint combines directional feedback with a specific ink suggestion
+      const tc = targetColour;
+      const cDiff = mixCmyk.c - tc.c;
+      const mDiff = mixCmyk.m - tc.m;
+      const yDiff = mixCmyk.y - tc.y;
+      const kDiff = mixCmyk.k - tc.k;
+      const adjustments = [
+        { name: 'cyan',    diff: Math.abs(cDiff), over: cDiff > 0 },
+        { name: 'magenta', diff: Math.abs(mDiff), over: mDiff > 0 },
+        { name: 'yellow',  diff: Math.abs(yDiff), over: yDiff > 0 },
+        { name: 'black',   diff: Math.abs(kDiff), over: kDiff > 0 }
+      ].filter(a => a.diff > 5).sort((a, b) => b.diff - a.diff);
+
+      let msg = '';
+      if (dist > 80) {
+        msg = "Not quite there yet. The target colour mainly uses ";
+        const dominant = [
+          { name: 'cyan', val: tc.c }, { name: 'magenta', val: tc.m },
+          { name: 'yellow', val: tc.y }, { name: 'black', val: tc.k }
+        ].filter(p => p.val > 10).sort((a, b) => b.val - a.val);
+        msg += dominant.length > 0 ? dominant.slice(0,2).map(p => p.name).join(' and ') + '. Start there.' : 'very little ink - keep it light.';
+      } else if (adjustments.length > 0) {
+        const top = adjustments[0];
+        const second = adjustments[1];
+        msg = "Getting there! Try " + (top.over ? 'less' : 'more') + ' ' + top.name;
+        if (second) msg += ' and ' + (second.over ? 'less' : 'more') + ' ' + second.name;
+        msg += '.';
+      } else {
+        msg = "Really close now - just a tiny adjustment needed. Try one drop at a time.";
+      }
+      msg += ' (-' + diff.hintPenalty + ' pts)';
+      setMarv('marvmixing', msg);
+    }
+
+    function deliverHint(diff) {
       const tc = targetColour;
       const dominant = [
         { name: 'Cyan',    val: tc.c },
@@ -1418,8 +1564,7 @@
         const top2 = dominant.slice(0, 2).map(p => p.name).join(' and ');
         hint = "You're mainly working with " + top2 + ". Get those balanced first, then fine-tune.";
       }
-
-      hint += ' (-' + diff.hintPenalty + ' pts)';
+      if (diff.hintPenalty > 0) hint += ' (-' + diff.hintPenalty + ' pts)';
       setMarv('marvmixing', hint);
     }
 
@@ -1454,20 +1599,25 @@
     function showResult(success, dist) {
       gameOver = true;
 
-      const diff   = DIFFICULTIES[currentDifficulty];
+      const diff    = DIFFICULTIES[currentDifficulty];
       const mixCmyk = getMixCmyk();
       const mixRgb  = cmykToRgb(mixCmyk.c, mixCmyk.m, mixCmyk.y, mixCmyk.k);
       const tRgb    = cmykToRgb(targetColour.c, targetColour.m, targetColour.y, targetColour.k);
 
-      const baseScore   = success ? diff.scores[attempt - 1] : 0;
-      const finalScore  = Math.max(0, baseScore - hintPenalty);
-      currentScore = finalScore;
+      const baseScore  = success ? diff.scores[attempt - 1] : 0;
+      const roundScore = Math.max(0, baseScore - hintPenalty);
+      sessionScore += roundScore;
+      targetsCompleted++;
 
-      // High score
-      const isNewHs = setHighScore(currentDifficulty, finalScore);
+      const isTrainee   = currentDifficulty === 'trainee';
+      const sessionDone = !isTrainee && targetsCompleted >= TARGETS_PER_SESSION;
+
+      // High score - only check at end of full session (or trainee round)
+      const isNewHs = sessionDone || isTrainee ? setHighScore(currentDifficulty, sessionScore) : false;
 
       // Update result UI
-      document.getElementById('result-score-big').textContent = finalScore;
+      document.getElementById('result-score-big').textContent = sessionScore;
+      document.getElementById('score-card-label-text').textContent = sessionDone ? 'Final Score' : isTrainee ? 'Score So Far' : 'Score So Far (' + targetsCompleted + ' of ' + TARGETS_PER_SESSION + ')';
       document.getElementById('hs-banner').classList.toggle('show', isNewHs);
 
       // Swatches
@@ -1480,7 +1630,7 @@
       if (success) {
         const titles = ['Nailed it!', 'Colour Matched!', 'Nice Work!'];
         const subs   = ['Perfect colour match - great mixing!', 'You matched the repair patch!', 'The colour is spot on!'];
-        const sprite = finalScore >= diff.scores[0] * 0.8 ? 'marvtriumphant' : 'marvcongratulatory';
+        const sprite = roundScore >= diff.scores[0] * 0.8 ? 'marvtriumphant' : 'marvcongratulatory';
         document.getElementById('result-title').textContent    = titles[attempt - 1] || 'Colour Matched!';
         document.getElementById('result-subtitle').textContent = subs[attempt - 1]   || 'You matched the colour!';
         document.getElementById('result-marv').src = MARV_SPRITES[sprite];
@@ -1493,16 +1643,17 @@
       // Score breakdown
       const breakdown = document.getElementById('score-breakdown');
       breakdown.innerHTML = '';
-
       const rows = [
-        { label: 'Difficulty',     value: diff.label,                         cls: '' },
-        { label: 'Target colour',  value: targetColour.name,                  cls: '' },
-        { label: 'Attempts used',  value: attempt + ' of 3',                  cls: '' },
-        { label: 'Base score',     value: success ? '+' + baseScore : '0',    cls: success ? 'positive' : '' },
-        { label: 'Hint penalty',   value: hintPenalty > 0 ? '-' + hintPenalty : 'None', cls: hintPenalty > 0 ? 'negative' : '' },
-        { label: 'Colour distance',value: Math.round(dist) + ' pts apart',    cls: '' }
+        { label: 'Difficulty',      value: diff.label,                                    cls: '' },
+        { label: 'Target colour',   value: targetColour.name,                             cls: '' },
+        { label: 'Attempts used',   value: attempt + ' of 3',                             cls: '' },
+        { label: 'Round score',     value: success ? '+' + roundScore : '0',              cls: success ? 'positive' : '' },
+        { label: 'Hint penalty',    value: hintPenalty > 0 ? '-' + hintPenalty : 'None', cls: hintPenalty > 0 ? 'negative' : '' },
+        { label: 'Session total',   value: sessionScore + ' pts',                         cls: 'positive' }
       ];
-
+      if (!isTrainee) {
+        rows.push({ label: 'Targets remaining', value: sessionDone ? 'Complete!' : (TARGETS_PER_SESSION - targetsCompleted) + ' left', cls: '' });
+      }
       rows.forEach(r => {
         const row = document.createElement('div');
         row.className = 'score-row';
@@ -1511,12 +1662,67 @@
         breakdown.appendChild(row);
       });
 
-      // postMessage for Rise
-      window.parent.postMessage({ type: 'complete' }, '*');
+      // Buttons
+      const btnWrap = document.getElementById('result-btn-wrap');
+      btnWrap.innerHTML = '';
+
+      if (isTrainee) {
+        // Trainee: Try Another + Change Level
+        const btnAnother = document.createElement('button');
+        btnAnother.className = 'btn btn-primary';
+        btnAnother.textContent = 'Try Another Colour';
+        btnAnother.onclick = () => { initGame(false); showScreen('screen-game'); };
+
+        const btnChange = document.createElement('button');
+        btnChange.className = 'btn btn-secondary';
+        btnChange.style.marginTop = '10px';
+        btnChange.textContent = 'Change Level';
+        btnChange.onclick = () => goToDifficulty();
+
+        btnWrap.appendChild(btnAnother);
+        btnWrap.appendChild(btnChange);
+      } else if (sessionDone) {
+        // Session complete: Play Again + Change Level
+        window.parent.postMessage({ type: 'complete' }, '*');
+
+        const btnAgain = document.createElement('button');
+        btnAgain.className = 'btn btn-primary';
+        btnAgain.textContent = 'Play Again';
+        btnAgain.onclick = () => { initGame(true); showScreen('screen-game'); };
+
+        const btnChange = document.createElement('button');
+        btnChange.className = 'btn btn-secondary';
+        btnChange.style.marginTop = '10px';
+        btnChange.textContent = 'Change Level';
+        btnChange.onclick = () => goToDifficulty();
+
+        btnWrap.appendChild(btnAgain);
+        btnWrap.appendChild(btnChange);
+      } else {
+        // Mid-session: Next Target
+        const btnNext = document.createElement('button');
+        btnNext.className = 'btn btn-primary';
+        btnNext.textContent = 'Next Target (' + targetsCompleted + ' of ' + TARGETS_PER_SESSION + ' done)';
+        btnNext.onclick = () => { initGame(false); showScreen('screen-game'); };
+
+        btnWrap.appendChild(btnNext);
+      }
 
       showScreen('screen-result');
     }
 
+    function goToDifficulty() {
+      currentDifficulty = null;
+      document.querySelectorAll('.difficulty-card').forEach(c => c.classList.remove('selected'));
+      document.getElementById('btn-start-mixing').disabled = true;
+      renderHighScoresOnDifficulty();
+      updateWelcomeHighScore();
+      showScreen('screen-difficulty');
+    }
+
+    function playAgain() {
+      goToDifficulty();
+    }
     // ════════════════════════════════════════════
     // INIT
     // ════════════════════════════════════════════
